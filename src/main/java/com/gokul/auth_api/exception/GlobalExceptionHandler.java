@@ -3,6 +3,7 @@ package com.gokul.auth_api.exception;
 import com.gokul.auth_api.dto.ErrorResponse;
 import com.gokul.auth_api.dto.ValidationErrorResponse;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -60,5 +61,17 @@ public class GlobalExceptionHandler {
                 401,
                 ex.getMessage()
         );
+    }
+
+    @ExceptionHandler(InvalidResetTokenException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidResetToken(
+            InvalidResetTokenException ex) {
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse(
+                        HttpStatus.BAD_REQUEST.value(),
+                        ex.getMessage()
+                ));
     }
 }

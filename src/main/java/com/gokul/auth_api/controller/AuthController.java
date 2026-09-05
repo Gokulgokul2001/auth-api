@@ -5,7 +5,9 @@ import com.gokul.auth_api.dto.RegisterRequest;
 import com.gokul.auth_api.dto.LoginRequest;
 import com.gokul.auth_api.dto.LoginResponse;
 import com.gokul.auth_api.dto.RegisterResponse;
+import com.gokul.auth_api.dto.ResetPasswordRequest;
 import com.gokul.auth_api.service.AuthService;
+import com.gokul.auth_api.dto.ForgotPasswordRequest;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
@@ -69,5 +71,56 @@ public class AuthController {
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request){
         LoginResponse response = authService.login(request);
         return ResponseEntity.ok(response);
+    }
+    @Operation(
+            summary = "Request password reset",
+            description = "Generates a password reset token for the given email address"
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Password reset token generated successfully"
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Validation failed"
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "User not found"
+            )
+    })
+    @PostMapping("/forgot-password")
+    public ResponseEntity<String> forgotPassword(
+            @Valid @RequestBody ForgotPasswordRequest request) {
+
+        String resetToken =
+                authService.forgotPassword(request);
+
+        return ResponseEntity.ok(resetToken);
+    }
+    @Operation(
+            summary = "Reset password",
+            description = "Resets the user's password using a valid reset token"
+    )
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Password reset successfully"
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Validation failed or invalid/expired reset token"
+            )
+    })
+    @PostMapping("/reset-password")
+    public ResponseEntity<String> resetPassword(
+            @Valid @RequestBody ResetPasswordRequest request) {
+
+        authService.resetPassword(request);
+
+        return ResponseEntity.ok(
+                "Password reset successfully"
+        );
     }
 }

@@ -2,6 +2,8 @@ package com.gokul.auth_api.model;
 
 import jakarta.persistence.*;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "users")
 public class User {
@@ -21,6 +23,11 @@ public class User {
     @Column(nullable = false)
     private String role;
 
+    @Column(name = "reset_token")
+    private String resetToken;
+
+    @Column(name = "reset_token_expiry")
+    private java.time.LocalDateTime resetTokenExpiry;
 
     public Long getId() {
         return id;
@@ -60,5 +67,21 @@ public class User {
 
     public void setRole(String role) {
         this.role = role;
+    }
+
+    public String getResetToken() {
+        return resetToken;
+    }
+
+    public void setResetToken(String resetToken) {
+        this.resetToken = resetToken;
+    }
+
+    public LocalDateTime getResetTokenExpiry() {
+        return resetTokenExpiry;
+    }
+
+    public void setResetTokenExpiry(LocalDateTime resetTokenExpiry) {
+        this.resetTokenExpiry = resetTokenExpiry;
     }
 }

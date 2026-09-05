@@ -4,12 +4,17 @@ import com.gokul.auth_api.dto.LoginRequest;
 import com.gokul.auth_api.dto.RegisterRequest;
 import com.gokul.auth_api.exception.EmailAlreadyExistsException;
 import com.gokul.auth_api.exception.InvalidCredentialsException;
+import com.gokul.auth_api.exception.InvalidResetTokenException;
 import com.gokul.auth_api.model.User;
 import com.gokul.auth_api.repository.UserRepository;
 import com.gokul.auth_api.security.JwtService;
 import org.junit.jupiter.api.Test;
 import com.gokul.auth_api.dto.LoginResponse;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import com.gokul.auth_api.dto.ResetPasswordRequest;
+import org.junit.jupiter.api.BeforeEach;
+import java.time.LocalDateTime;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -245,5 +250,150 @@ class AuthServiceTest {
 
         verify(jwtService, never())
                 .generateToken(anyString());
+    }
+    @Test
+    void resetPassword_shouldUpdatePasswordAndClearToken() {
+
+        UserRepository userRepository = mock(UserRepository.class);
+        PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
+        JwtService jwtService = mock(JwtService.class);
+
+        AuthService authService =
+                new AuthService(
+                        userRepository,
+                        passwordEncoder,
+                        jwtService
+                );
+
+        ResetPasswordRequest request =
+                new ResetPasswordRequest(
+                        "valid-reset-token",
+                        "newpassword123"
+                );
+
+        User user = new User();
+
+        user.setId(1L);
+        user.setUsername("testuser");
+        user.setEmail("test@gmail.com");
+        user.setPassword("oldEncryptedPassword");
+        user.setRole("USER");
+        user.setResetToken("valid-reset-token");
+        user.setResetTokenExpiry(
+                LocalDateTime.now().plusMinutes(10)
+        );
+
+        when(userRepository.findByResetToken("valid-reset-token"))
+                .thenReturn(Optional.of(user));
+
+        when(passwordEncoder.encode("newpassword123"))
+                .thenReturn("newEncryptedPassword");
+
+        authService.resetPassword(request);
+
+        assertEquals(
+                "newEncryptedPassword",
+                user.getPassword()
+        );
+
+        assertNull(user.getResetToken());
+
+        assertNull(user.getResetTokenExpiry());
+
+        verify(userRepository)
+                .findByResetToken("valid-reset-token");
+
+        verify(passwordEncoder)
+                .encode("newpassword123");
+
+        verify(userRepository)
+                .save(user);
+    }
+    @Test
+    void resetPassword_shouldThrowException_whenTokenIsInvalid() {
+
+        UserRepository userRepository = mock(UserRepository.class);
+        PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
+        JwtService jwtService = mock(JwtService.class);
+
+        AuthService authService =
+                new AuthService(
+                        userRepository,
+                        passwordEncoder,
+                        jwtService
+                );
+
+        ResetPasswordRequest request =
+                new ResetPasswordRequest(
+                        "invalid-reset-token",
+                        "newpassword123"
+                );
+
+        when(userRepository.findByResetToken("invalid-reset-token"))
+                .thenReturn(Optional.empty());
+
+        assertThrows(
+                InvalidResetTokenException.class,
+                () -> authService.resetPassword(request)
+        );
+
+        verify(userRepository)
+                .findByResetToken("invalid-reset-token");
+
+        verify(passwordEncoder, never())
+                .encode(anyString());
+
+        verify(userRepository, never())
+                .save(any(User.class));
+    }
+    @Test
+    void resetPassword_shouldThrowException_whenTokenIsExpired() {
+
+        UserRepository userRepository = mock(UserRepository.class);
+        PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
+        JwtService jwtService = mock(JwtService.class);
+
+        AuthService authService =
+                new AuthService(
+                        userRepository,
+                        passwordEncoder,
+                        jwtService
+                );
+
+        ResetPasswordRequest request =
+                new ResetPasswordRequest(
+                        "expired-reset-token",
+                        "newpassword123"
+                );
+
+        User user = new User();
+
+        user.setId(1L);
+        user.setUsername("testuser");
+        user.setEmail("test@gmail.com");
+        user.setPassword("oldEncryptedPassword");
+        user.setRole("USER");
+        user.setResetToken("expired-reset-token");
+
+        user.setResetTokenExpiry(
+                LocalDateTime.now().minusMinutes(10)
+        );
+
+        when(userRepository.findByResetToken("expired-reset-token"))
+                .thenReturn(Optional.of(user));
+
+        assertThrows(
+                InvalidResetTokenException.class,
+                () -> authService.resetPassword(request)
+        );
+
+        verify(userRepository)
+                .findByResetToken("expired-reset-token");
+
+        verify(passwordEncoder, never())
+                .encode(anyString());
+
+        verify(userRepository, never())
+                .save(any(User.class));
     }
 }
